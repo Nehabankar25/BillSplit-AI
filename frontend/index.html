@@ -136,7 +136,7 @@
       <div id="alert-mismatch" class="alert alert-warning hidden">
         <span class="alert-icon">⚠️</span>
         <div class="alert-content">
-          <strong>Items and printed total differ</strong>
+          <strong>Please review the bill totals</strong>
           <span id="alert-mismatch-detail"></span>
         </div>
       </div>
@@ -204,11 +204,15 @@
           <div style="margin-top:1.25rem;">
             <div class="totals-row">
               <span class="label">Printed Subtotal</span>
-              <span class="amount" id="display-printed-total">—</span>
+              <span class="amount" id="display-printed-subtotal">—</span>
             </div>
             <div class="totals-row">
               <span class="label">Current Items Total</span>
               <span class="amount" id="display-items-total">—</span>
+            </div>
+            <div class="totals-row">
+              <span class="label">Printed Total</span>
+              <span class="amount" id="display-printed-total">—</span>
             </div>
             <div class="totals-row grand">
               <span class="label">Calculated Bill Total</span>

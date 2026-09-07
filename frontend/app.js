@@ -60,6 +60,7 @@ class BillSplitApp {
     this.$fieldTax           = document.getElementById('field-tax');
     this.$fieldSC            = document.getElementById('field-sc');
     this.$fieldDiscount      = document.getElementById('field-discount');
+    this.$displayPrintedSub  = document.getElementById('display-printed-subtotal');
     this.$displayPrinted     = document.getElementById('display-printed-total');
     this.$displayItemsTotal  = document.getElementById('display-items-total');
     this.$displayCalc        = document.getElementById('display-calc-total');
@@ -371,6 +372,7 @@ class BillSplitApp {
     } else {
       this.$displayPrinted.textContent = '— (unreadable)';
     }
+    this.$displayPrintedSub.textContent = `₹${printedSub}`;
 
     this._syncSubtotal();
   }
@@ -400,14 +402,32 @@ class BillSplitApp {
     }
 
     const printedSub = parseFloat(this.$fieldSubtotal.value) || 0;
-    const diff = Math.abs(itemsSum - printedSub);
+    const subtotalDiff = Math.abs(itemsSum - printedSub);
+    const tax = parseFloat(this.$fieldTax.value) || 0;
+    const serviceCharge = parseFloat(this.$fieldSC.value) || 0;
+    const discount = parseFloat(this.$fieldDiscount.value) || 0;
+    const calculatedTotal = itemsSum + tax + serviceCharge - discount;
+    const printedTotal = this.state.bill?.printed_total == null
+      ? null
+      : parseFloat(this.state.bill.printed_total);
+    const totalDiff = printedTotal == null ? 0 : Math.abs(calculatedTotal - printedTotal);
+    const warnings = [];
 
-    // Mismatch alert
-    if (diff > 1.00) {
-      this.$alertMismatchDetail.innerHTML =
-        `Printed subtotal: <strong>₹${printedSub.toFixed(2)}</strong> &nbsp;·&nbsp; ` +
-        `Current items total: <strong>₹${itemsSubStr}</strong> &nbsp;·&nbsp; ` +
-        `Difference: <strong>₹${diff.toFixed(2)}</strong>. The calculation will use current items total.`;
+    if (subtotalDiff > 1.00) {
+      warnings.push(
+        `Printed subtotal: <strong>₹${printedSub.toFixed(2)}</strong> · ` +
+        `Current items total: <strong>₹${itemsSubStr}</strong>`
+      );
+    }
+    if (totalDiff > 1.00) {
+      warnings.push(
+        `Printed total: <strong>₹${printedTotal.toFixed(2)}</strong> · ` +
+        `Calculated total: <strong>₹${calculatedTotal.toFixed(2)}</strong>`
+      );
+    }
+
+    if (warnings.length) {
+      this.$alertMismatchDetail.innerHTML = `${warnings.join(' &nbsp;·&nbsp; ')}. Please review before continuing.`;
       this.$alertMismatch.classList.remove('hidden');
     } else {
       this.$alertMismatch.classList.add('hidden');
