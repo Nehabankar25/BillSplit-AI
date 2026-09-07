@@ -6,27 +6,47 @@ Upload a bill photograph → AI extracts line items → human review → assign 
 
 ## Quick Start
 
+### PowerShell
+
+```powershell
+cd "C:\Users\<you>\OneDrive\Desktop\BillSplit\billsplit-ai"
+python -m venv backend\venv
+& .\backend\venv\Scripts\Activate.ps1
+pip install -r backend\requirements.txt
+Copy-Item backend\.env.example backend\.env
+# Edit backend\.env and add your local Gemini API key
+python -m uvicorn backend.main:app --reload --port 8000
+```
+
+Open **http://127.0.0.1:8000** for the app and **http://127.0.0.1:8000/docs** for Swagger. Stop the server with `Ctrl+C`.
+
+### macOS / Linux
+
 ```bash
-# 1. Clone and enter the project
-cd billsplit-ai/backend
+# 1. Enter the project
+cd billsplit-ai
 
 # 2. Create and activate a virtual environment
-python -m venv venv
-venv\Scripts\activate        # Windows
-# source venv/bin/activate   # macOS/Linux
+python -m venv backend/venv
+source backend/venv/bin/activate
 
 # 3. Install dependencies
-pip install -r requirements.txt
+pip install -r backend/requirements.txt
 
 # 4. Set your API key
-copy .env.example .env
+cp backend/.env.example backend/.env
 # Edit .env and paste your Gemini API key
 
 # 5. Run the server
-uvicorn main:app --reload --port 8000
+python -m uvicorn backend.main:app --reload --port 8000
 ```
 
-Open **http://localhost:8000** for the app, **http://localhost:8000/docs** for Swagger.
+## What Is Real vs Mocked
+
+- **Real:** receipt upload, FastAPI routing, Gemini Vision extraction, Pydantic validation, human edits, stable item IDs, participant assignment, Decimal calculations, proportional tax/service-charge allocation, mismatch warnings, and penny reconciliation.
+- **Mocked/demo:** **Try Sample Bill** calls `GET /api/bills/demo`, which returns a fixed in-memory sample bill. It does not call Gemini and exists for a no-key demonstration.
+- **Local-only:** participants and recent split history are not saved to a backend database or shared across users.
+- No login, database, payments, cloud deployment, or authentication is included in this MVP.
 
 ---
 
@@ -96,7 +116,7 @@ billsplit-ai/
 │       ├── extraction_service.py    Python computes calculated_total + mismatch
 │       └── calculation_service.py   Proportional split + penny reconciliation
 └── frontend/
-    ├── index.html                   4-screen SPA (no framework)
+    ├── index.html                   6-step SPA (no framework)
     ├── style.css                    Dark navy design system
     └── app.js                       BillSplitApp class
 ```
