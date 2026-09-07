@@ -352,6 +352,9 @@ class BillSplitApp {
     this.$itemsTbody.querySelectorAll('.total-input').forEach(inp => {
       inp.addEventListener('input', () => this._syncSubtotal());
     });
+    this.$itemsTbody.querySelectorAll('input[data-field="quantity"], input[data-field="unit_price"]').forEach(inp => {
+      inp.addEventListener('input', () => this._syncItemTotal(inp));
+    });
     this.$itemsTbody.querySelectorAll('.btn-row-delete').forEach(btn => {
       btn.addEventListener('click', () => this._deleteItem(btn.dataset.id));
     });
@@ -368,6 +371,18 @@ class BillSplitApp {
     } else {
       this.$displayPrinted.textContent = '— (unreadable)';
     }
+
+    this._syncSubtotal();
+  }
+
+  _syncItemTotal(input) {
+    const row = input.closest('tr');
+    if (!row) return;
+
+    const quantity = parseFloat(row.querySelector('input[data-field="quantity"]')?.value) || 0;
+    const unitPrice = parseFloat(row.querySelector('input[data-field="unit_price"]')?.value) || 0;
+    const totalInput = row.querySelector('input[data-field="total"]');
+    if (totalInput) totalInput.value = (quantity * unitPrice).toFixed(2);
 
     this._syncSubtotal();
   }
