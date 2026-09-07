@@ -189,3 +189,33 @@ Bills that compute tax on the post-discount subtotal will show a small `total_mi
 | `POST` | `/api/bills/validate` | Re-validate edited bill → `Bill` JSON |
 | `POST` | `/api/split/calculate` | `SplitRequest` → `SplitResult` |
 | `GET` | `/docs` | Swagger UI |
+
+## Security Notes
+
+- Gemini credentials stay on the FastAPI backend in `backend/.env`.
+- Never commit `.env`, API keys, tokens, passwords, or machine-specific configuration.
+- `backend/.env.example` contains placeholders only.
+- The frontend communicates with FastAPI and never calls Gemini directly.
+
+## Testing
+
+Run the backend tests from the repository root:
+
+```bash
+python -m pytest backend/tests -q
+```
+
+The suite covers health checks, bill re-validation, stable item IDs, unassigned-item validation, proportional charges, and penny reconciliation.
+
+## Demo Instructions
+
+1. Start the backend with `uvicorn backend.main:app --reload --port 8000`.
+2. Open `http://127.0.0.1:8000`.
+3. Select **Try Sample Bill** to demonstrate the review, participant, assignment, and summary flow without a Gemini key.
+4. For real photographs, copy `backend/.env.example` to `backend/.env` and add the local Gemini key.
+
+## Known Limitations
+
+- This MVP has no login, database, payments, or cloud deployment.
+- Participants and recent split history are local to the current browser session/device.
+- The two-photo long-bill scenario is represented in the evaluation template and requires manual combination during review.
