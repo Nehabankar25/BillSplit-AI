@@ -1,0 +1,351 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>BillSplit AI — Smart Bill Splitting</title>
+  <meta name="description" content="Upload a bill photo, let AI extract line items, review, assign people, and compute exact proportional splits." />
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+  <div class="app-container">
+
+    <!-- ── Header ──────────────────────────────────────────────────────── -->
+    <header class="app-header">
+      <div class="logo-wrap">
+        <div class="logo-icon" aria-hidden="true"><span></span></div>
+        <div class="logo-text">Bill<span>Split</span> <small>AI</small></div>
+      </div>
+    </header>
+
+    <!-- ── 6-Step Workflow Navigation ──────────────────────────────────── -->
+    <nav class="steps-bar" aria-label="Progress">
+      <div class="step active" id="step-1">
+        <div class="step-num">1</div>
+        <div class="step-label">Upload</div>
+      </div>
+      <div class="step-line" id="line-1-2"></div>
+      <div class="step" id="step-2">
+        <div class="step-num">2</div>
+        <div class="step-label">Analysis</div>
+      </div>
+      <div class="step-line" id="line-2-3"></div>
+      <div class="step" id="step-3">
+        <div class="step-num">3</div>
+        <div class="step-label">Review</div>
+      </div>
+      <div class="step-line" id="line-3-4"></div>
+      <div class="step" id="step-4">
+        <div class="step-num">4</div>
+        <div class="step-label">People</div>
+      </div>
+      <div class="step-line" id="line-4-5"></div>
+      <div class="step" id="step-5">
+        <div class="step-num">5</div>
+        <div class="step-label">Assign</div>
+      </div>
+      <div class="step-line" id="line-5-6"></div>
+      <div class="step" id="step-6">
+        <div class="step-num">6</div>
+        <div class="step-label">Summary</div>
+      </div>
+    </nav>
+
+    <!-- ══════════════════════════════════════════════════════════════════
+         SCREEN 1 — UPLOAD BILL
+    ══════════════════════════════════════════════════════════════════════ -->
+    <main id="screen-upload" class="screen">
+      <div class="home-intro">
+        <h1>Split your bill, <span>simply.</span></h1>
+        <p>Upload a receipt. We’ll organize the numbers.</p>
+      </div>
+
+      <div class="card card-cream upload-card glossy-sheen">
+        <div class="receipt-upload-art">
+          <span class="receipt-label">RECEIPT</span>
+          <strong class="receipt-total">₹ —</strong>
+          <span class="receipt-caption">Ready to scan</span>
+          <span class="receipt-rule"></span>
+          <span class="receipt-detail">Items · taxes · totals</span>
+        </div>
+
+        <div class="upload-zone" id="upload-zone">
+          <input type="file" id="file-input" accept="image/jpeg,image/png,image/webp,image/heic,image/heif" />
+          <span class="upload-icon" aria-hidden="true"></span>
+          <h2>Upload bill photo</h2>
+          <p>Drag &amp; drop or click to browse (JPG, PNG)</p>
+        </div>
+
+        <div class="upload-preview-wrap" id="upload-preview-wrap" style="display:none;margin-top:1.5rem;position:relative;">
+          <img id="upload-preview-img" src="" alt="Bill preview" style="width:100%;max-height:340px;object-fit:contain;border-radius:var(--radius-lg);" />
+          <button class="preview-remove" id="preview-remove-btn" title="Remove image">×</button>
+        </div>
+
+        <div class="analyze-row">
+          <div id="upload-error" class="hidden"></div>
+          <div style="display:flex;gap:0.85rem;justify-content:center;flex-wrap:wrap;align-items:center;">
+            <button class="btn btn-primary btn-lg btn-tactile" id="analyze-btn" disabled>
+              Analyze Bill
+            </button>
+            <button class="btn btn-ghost btn-lg" id="demo-btn">
+              ⚡ Try Sample Bill
+            </button>
+          </div>
+
+          <div class="feature-badges-row"><span class="feature-badge">AI extracts items, taxes and totals</span></div>
+        </div>
+      </div>
+
+      <!-- Recent History Section -->
+      <div class="recent-bills-wrap">
+        <h3 style="font-size:0.85rem;color:var(--text-muted-purple);text-transform:uppercase;letter-spacing:0.1em;font-weight:800;">Recent Splits</h3>
+        <div class="recent-bills-grid" id="recent-bills-grid"></div>
+      </div>
+    </main>
+
+    <!-- ══════════════════════════════════════════════════════════════════
+         SCREEN 2 — AI ANALYSIS
+    ══════════════════════════════════════════════════════════════════════ -->
+    <main id="screen-analysis" class="screen">
+      <div class="card analysis-card">
+        <div class="eyebrow eyebrow-dark"><span class="eyebrow-dot"></span> BillSplit intelligence</div>
+        <div class="analysis-preview-container">
+          <img id="analysis-preview-img" src="" alt="Scanning receipt" />
+          <div class="scanning-beam"></div>
+        </div>
+
+        <div class="staged-status-text" id="analysis-status-text">
+          <span class="spinner"></span> Reading receipt...
+        </div>
+
+        <div class="analysis-progress-track">
+          <div class="analysis-progress-bar" id="analysis-progress-bar"></div>
+        </div>
+      </div>
+    </main>
+
+    <!-- ══════════════════════════════════════════════════════════════════
+         SCREEN 3 — REVIEW BILL
+    ══════════════════════════════════════════════════════════════════════ -->
+    <main id="screen-review" class="screen">
+      <div class="screen-heading">
+        <div><span class="eyebrow eyebrow-dark"><span class="eyebrow-dot"></span> Review your receipt</span><h1>Make it yours.</h1></div>
+        <span class="heading-note">Everything stays editable</span>
+      </div>
+      <!-- Alerts -->
+      <div id="alert-mismatch" class="alert alert-warning hidden">
+        <span class="alert-icon">⚠️</span>
+        <div class="alert-content">
+          <strong>Items and printed total differ</strong>
+          <span id="alert-mismatch-detail"></span>
+        </div>
+      </div>
+
+      <div id="alert-illegible" class="alert alert-info hidden">
+        <span class="alert-icon">ℹ️</span>
+        <div class="alert-content">
+          <strong>Printed total unreadable</strong>
+          <span id="alert-illegible-detail"></span>
+        </div>
+      </div>
+
+      <div class="split-review-grid">
+        <!-- Receipt Image Preview (Left Column) -->
+        <div class="review-preview-card">
+          <h3 style="font-size:0.85rem;color:var(--text-muted-purple);text-transform:uppercase;letter-spacing:0.1em;font-weight:800;margin-bottom:0.75rem;">Receipt Photo</h3>
+          <img id="review-receipt-img" src="" alt="Receipt photo" />
+        </div>
+
+        <!-- Extracted Bill Details (Right Column) -->
+        <div class="card card-cream glossy-sheen">
+          <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:0.85rem;">
+            <h2 style="font-size:1.25rem;font-weight:800;color:var(--text-dark);">Extracted Bill</h2>
+            <button class="btn btn-dark btn-sm" id="add-item-btn">+ Add Item</button>
+          </div>
+
+          <table class="items-table" id="items-table">
+            <thead>
+              <tr>
+                <th style="width:34%;">Item</th>
+                <th style="width:10%;">Qty</th>
+                <th style="width:18%;">Unit Price</th>
+                <th style="width:18%;">Total</th>
+                <th style="width:16%;">Confidence</th>
+                <th style="width:4%;"></th>
+              </tr>
+            </thead>
+            <tbody id="items-tbody">
+              <!-- Populated by JS -->
+            </tbody>
+          </table>
+
+          <div style="border-top:1.5px dashed rgba(38,30,69,0.2);margin:1.25rem 0;"></div>
+
+          <div style="font-size:0.75rem;font-weight:800;letter-spacing:0.1em;text-transform:uppercase;color:var(--text-dark-muted);margin-bottom:0.65rem;">Charges &amp; Adjustments</div>
+          <div class="charges-grid">
+            <div class="charge-field">
+              <label for="field-subtotal" style="color:var(--text-dark-muted);font-weight:700;font-size:0.75rem;">Printed Subtotal</label>
+              <input class="edit-input" type="number" id="field-subtotal" min="0" step="0.01" placeholder="0.00" />
+            </div>
+            <div class="charge-field">
+              <label for="field-tax" style="color:var(--text-dark-muted);font-weight:700;font-size:0.75rem;">Tax / GST</label>
+              <input class="edit-input" type="number" id="field-tax" min="0" step="0.01" placeholder="0.00" />
+            </div>
+            <div class="charge-field">
+              <label for="field-sc" style="color:var(--text-dark-muted);font-weight:700;font-size:0.75rem;">Service Charge</label>
+              <input class="edit-input" type="number" id="field-sc" min="0" step="0.01" placeholder="0.00" />
+            </div>
+            <div class="charge-field">
+              <label for="field-discount" style="color:var(--text-dark-muted);font-weight:700;font-size:0.75rem;">Discount</label>
+              <input class="edit-input" type="number" id="field-discount" min="0" step="0.01" placeholder="0.00" />
+            </div>
+          </div>
+
+          <div style="margin-top:1.25rem;">
+            <div class="totals-row">
+              <span class="label">Printed Subtotal</span>
+              <span class="amount" id="display-printed-total">—</span>
+            </div>
+            <div class="totals-row">
+              <span class="label">Current Items Total</span>
+              <span class="amount" id="display-items-total">—</span>
+            </div>
+            <div class="totals-row grand">
+              <span class="label">Calculated Bill Total</span>
+              <span class="amount" id="display-calc-total">—</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="action-bar">
+        <button class="btn btn-ghost" id="review-back-btn">Back</button>
+        <button class="btn btn-primary btn-lg btn-tactile" id="review-continue-btn">
+          Continue to People
+        </button>
+      </div>
+    </main>
+
+    <!-- ══════════════════════════════════════════════════════════════════
+         SCREEN 4 — ADD PEOPLE
+    ══════════════════════════════════════════════════════════════════════ -->
+    <main id="screen-people" class="screen">
+      <div class="screen-heading screen-heading-light">
+        <div><span class="eyebrow"><span class="eyebrow-dot"></span> Step 04</span><h1>Who’s at the table?</h1></div>
+        <span class="heading-note">Add the crew</span>
+      </div>
+      <div class="card card-cream glossy-sheen" style="margin-bottom:1.5rem;">
+        <h2 style="font-size:1.5rem;font-weight:800;color:var(--text-dark);">Split with</h2>
+        <p style="color:var(--text-dark-muted);font-weight:600;">Add everyone participating in this bill.</p>
+      </div>
+
+      <div class="card" id="participants-card">
+        <div class="participants-row" id="participants-row" style="position:relative;">
+          <!-- Avatar chips rendered by JS -->
+        </div>
+
+        <!-- Floating Mini Add Card -->
+        <div class="floating-add-card">
+          <input
+            type="text"
+            id="add-person-input"
+            placeholder="Add a person by name…"
+            maxlength="30"
+          />
+          <button class="btn btn-primary btn-tactile" id="add-person-btn">+ Add</button>
+        </div>
+
+        <p id="participants-hint" class="mt-2" style="font-size:0.85rem;color:var(--text-muted-purple);font-weight:600;">
+          Add at least one person to continue.
+        </p>
+      </div>
+
+      <div class="action-bar">
+        <button class="btn btn-ghost" id="people-back-btn">Back</button>
+        <button class="btn btn-primary btn-lg btn-tactile" id="people-continue-btn">
+          Continue to Assign
+        </button>
+      </div>
+    </main>
+
+    <!-- ══════════════════════════════════════════════════════════════════
+         SCREEN 5 — ASSIGN ITEMS
+    ══════════════════════════════════════════════════════════════════════ -->
+    <main id="screen-assign" class="screen">
+      <div class="screen-heading screen-heading-light">
+        <div><span class="eyebrow"><span class="eyebrow-dot"></span> Step 05</span><h1>Give every bite a home.</h1></div>
+        <span class="heading-note">Tap to share</span>
+      </div>
+      <div class="card card-cream glossy-sheen" style="margin-bottom:1.5rem;">
+        <h2 style="font-size:1.5rem;font-weight:800;color:var(--text-dark);">Assign Items</h2>
+        <p style="color:var(--text-dark-muted);font-weight:600;">Select who ordered each item or mark as Everyone.</p>
+      </div>
+
+      <!-- Unassigned Warning -->
+      <div id="unassigned-alert" class="alert alert-error hidden">
+        <span class="alert-icon">⚠️</span>
+        <div class="alert-content">
+          <strong id="unassigned-alert-text">Some items are not yet assigned.</strong>
+          Assign every item to specific people or mark it as "Everyone" before calculating.
+        </div>
+      </div>
+
+      <!-- Item Assignment Cards -->
+      <div id="assignment-cards">
+        <!-- Rendered by JS -->
+      </div>
+
+      <div class="action-bar">
+        <button class="btn btn-ghost" id="assign-back-btn">Back</button>
+        <button class="btn btn-primary btn-lg btn-tactile" id="calculate-btn" disabled>
+          Calculate Split
+        </button>
+      </div>
+    </main>
+
+    <!-- ══════════════════════════════════════════════════════════════════
+         SCREEN 6 — SPLIT SUMMARY
+    ══════════════════════════════════════════════════════════════════════ -->
+    <main id="screen-summary" class="screen">
+      <div class="screen-heading screen-heading-light">
+        <div><span class="eyebrow"><span class="eyebrow-dot"></span> All settled</span><h1>Your split is ready.</h1></div>
+        <span class="heading-note">Penny-perfect</span>
+      </div>
+      <!-- Mismatch Banner -->
+      <div id="summary-mismatch-alert" class="alert alert-warning hidden">
+        <span class="alert-icon">⚠️</span>
+        <div class="alert-content">
+          <strong>Bill total mismatch</strong>
+          <span id="summary-mismatch-text"></span>
+        </div>
+      </div>
+
+      <!-- Summary Hero Card -->
+      <div class="summary-hero-card glossy-sheen" id="summary-header-card">
+        <div class="summary-title">Your bill</div>
+        <div class="summary-total-amount" id="summary-grand-total">—</div>
+        <div id="summary-breakdown-rows" style="margin-top:0.75rem;">
+          <!-- Rendered by JS -->
+        </div>
+      </div>
+
+      <h2 style="font-size:1.35rem;font-weight:800;color:var(--text-white);margin-bottom:1.25rem;">Your Share</h2>
+      <div class="person-cards-grid" id="person-cards-grid">
+        <!-- Rendered by JS -->
+      </div>
+
+      <p class="reconcile-note" id="reconcile-note"></p>
+
+      <div class="action-bar" style="justify-content:center;margin-top:2.5rem;">
+        <button class="btn btn-ghost" id="summary-back-btn">Adjust</button>
+        <button class="btn btn-primary btn-lg btn-tactile glossy-sheen" id="start-over-btn">
+          Confirm Split &amp; Start Another
+        </button>
+      </div>
+    </main>
+
+  </div><!-- /.app-container -->
+
+  <script src="app.js"></script>
+</body>
+</html>

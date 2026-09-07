@@ -1,0 +1,146 @@
+{
+  "_comment": "Ground truth for 12 test bills. For each bill, record the exact values as they appear on the physical receipt, then record what the AI extracted, and note any human corrections made on the review screen.",
+  "_schema": {
+    "bill_id": "string — unique identifier, e.g. bill_01",
+    "filename": "string — file in test_data/bills/",
+    "description": "string — brief description of difficulty/scenario",
+    "ground_truth": {
+      "items": [{"name": "string", "quantity": "number", "unit_price": "number", "total": "number"}],
+      "subtotal": "number",
+      "tax": "number",
+      "service_charge": "number",
+      "discount": "number",
+      "printed_total": "number or null",
+      "calculated_total": "number — subtotal + tax + service_charge - discount",
+      "total_mismatch": "boolean"
+    },
+    "ai_output": {
+      "items": "same structure",
+      "subtotal": "number",
+      "tax": "number",
+      "service_charge": "number",
+      "discount": "number",
+      "printed_total": "number or null",
+      "avg_item_confidence": "number — average confidence across items"
+    },
+    "corrections_made": ["list of field names corrected by human reviewer"],
+    "split_scenario": {
+      "people": [{"id": "string", "name": "string"}],
+      "assignments": [{"item_id": "string", "person_ids": ["string"], "everyone": "boolean"}]
+    },
+    "notes": "string — anything unusual"
+  },
+  "bills": [
+    {
+      "bill_id": "bill_01",
+      "filename": "bill_01_clear.jpg",
+      "description": "Normal clear restaurant receipt — baseline",
+      "ground_truth": {},
+      "ai_output": {},
+      "corrections_made": [],
+      "notes": "Baseline — should score highest confidence across all items"
+    },
+    {
+      "bill_id": "bill_02",
+      "filename": "bill_02_small.jpg",
+      "description": "Small café receipt — short, few items",
+      "ground_truth": {},
+      "ai_output": {},
+      "corrections_made": [],
+      "notes": ""
+    },
+    {
+      "bill_id": "bill_03",
+      "filename": "bill_03_long.jpg",
+      "description": "Long restaurant bill — many items, tests full-page extraction",
+      "ground_truth": {},
+      "ai_output": {},
+      "corrections_made": [],
+      "notes": ""
+    },
+    {
+      "bill_id": "bill_04",
+      "filename": "bill_04_dim.jpg",
+      "description": "Dim lighting photograph — low light, high ISO noise",
+      "ground_truth": {},
+      "ai_output": {},
+      "corrections_made": [],
+      "notes": "Expect lower confidence scores on some items"
+    },
+    {
+      "bill_id": "bill_05",
+      "filename": "bill_05_crumpled.jpg",
+      "description": "Crumpled receipt — physical distortion",
+      "ground_truth": {},
+      "ai_output": {},
+      "corrections_made": [],
+      "notes": "Flatten as much as possible before photographing"
+    },
+    {
+      "bill_id": "bill_06",
+      "filename": "bill_06_angled.jpg",
+      "description": "Steep angle photograph — perspective distortion",
+      "ground_truth": {},
+      "ai_output": {},
+      "corrections_made": [],
+      "notes": "Deliberate 45°+ angle"
+    },
+    {
+      "bill_id": "bill_07",
+      "filename": "bill_07_thermal_faded.jpg",
+      "description": "Faded thermal print — old receipt, low ink",
+      "ground_truth": {},
+      "ai_output": {},
+      "corrections_made": [],
+      "notes": "Thermal paper fades over weeks in sunlight"
+    },
+    {
+      "bill_id": "bill_08",
+      "filename": "bill_08_handwritten.jpg",
+      "description": "Handwritten annotations on printed bill",
+      "ground_truth": {},
+      "ai_output": {},
+      "corrections_made": [],
+      "notes": "Pen additions on top of printed text"
+    },
+    {
+      "bill_id": "bill_09",
+      "filename": "bill_09_two_scripts.jpg",
+      "description": "Bill in two scripts — English + Hindi/regional language",
+      "ground_truth": {},
+      "ai_output": {},
+      "corrections_made": [],
+      "notes": "Item names in both scripts; amounts in Arabic numerals"
+    },
+    {
+      "bill_id": "bill_10",
+      "filename": ["bill_10a.jpg", "bill_10b.jpg"],
+      "description": "Long bill requiring two photographs — stitched extraction",
+      "ground_truth": {},
+      "ai_output": {},
+      "corrections_made": [],
+      "notes": "Upload both photos and combine extracted items manually before review"
+    },
+    {
+      "bill_id": "bill_11",
+      "filename": "bill_11_shared_heavy.jpg",
+      "description": "Shared-item-heavy bill — most items split among subsets",
+      "ground_truth": {},
+      "ai_output": {},
+      "corrections_made": [],
+      "notes": "Tests proportional GST logic; no items should go to 'Everyone'"
+    },
+    {
+      "bill_id": "bill_12",
+      "filename": "bill_12_wrong_total.jpg",
+      "description": "Bill with incorrect printed total — real arithmetic error on receipt",
+      "ground_truth": {
+        "total_mismatch": true,
+        "notes": "Printed total does not match sum of items + tax + SC"
+      },
+      "ai_output": {},
+      "corrections_made": [],
+      "notes": "Key demo bill — should trigger the mismatch warning banner"
+    }
+  ]
+}

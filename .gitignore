@@ -1,0 +1,44 @@
+# Python
+__pycache__/
+*.py[cod]
+*.pyo
+*.pyd
+.Python
+*.egg-info/
+dist/
+build/
+.eggs/
+venv/
+env/
+.venv/
+
+# Environment
+.env
+*.env
+.env.*
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Test data (large images)
+test_data/bills/*.jpg
+test_data/bills/*.jpeg
+test_data/bills/*.png
+test_data/bills/*.webp
+# Keep ground_truth.json
+!test_data/ground_truth.json
+
+# Screenshots
+screenshots/
+
+venv/
+node_modules/
+# Logs
+*.log
