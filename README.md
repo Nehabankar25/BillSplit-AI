@@ -191,6 +191,16 @@ The test-data folders have intentionally separate roles:
 - `test_data/online_samples/` — supplemental development/testing receipts downloaded from an explicitly licensed source. Source and license details are recorded beside the files. Online samples do **not** satisfy or replace the 12-bill requirement.
 - `test_data/ground_truth.json` — manually verified expected values for the official 12 assignment bills. Participant assignments are not part of extraction ground truth.
 
+### Dataset Substitution Disclaimer
+
+The original assignment calls for 12 personally photographed and manually labelled
+receipts. Those photographs are not available in this submission. To demonstrate
+the extraction and evaluation workflow, this project instead uses appropriately
+licensed online receipt data with its accompanying annotations where available.
+This is a technical benchmark substitute only; it must not be represented as
+fulfilling the personal-photography prerequisite. Dataset provenance and licence
+information are retained beside every online sample.
+
 ### Developer Evaluation Utility
 
 The developer-only evaluator uses the same Gemini extraction service as the application and reports field-level differences when a matching ground-truth entry exists. It does not affect the production flow:

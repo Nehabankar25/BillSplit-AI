@@ -1,5 +1,8 @@
 # Online Supplemental Samples
 
-This folder contains supplemental development/testing receipts only. These files are not part of the official 12-bill assignment evaluation set.
+This folder contains appropriately licensed online receipts used as a technical
+benchmark substitute because the required personally photographed receipts are
+not available. It demonstrates the application's extraction and evaluation
+workflow, but does not fulfil a requirement for 12 personally photographed bills.
 
 Source and permission details are recorded in `sources.json`.
