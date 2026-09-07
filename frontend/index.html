@@ -142,6 +142,7 @@
         <div><span class="eyebrow eyebrow-dark"><span class="eyebrow-dot"></span> Review your receipt</span><h1>Make it yours.</h1></div>
         <span class="heading-note">Everything stays editable</span>
       </div>
+      <section class="review-focus card card-cream" id="review-focus" aria-live="polite"></section>
       <!-- Alerts -->
       <div id="alert-mismatch" class="alert alert-warning hidden">
         <span class="alert-icon">⚠️</span>
@@ -308,6 +309,7 @@
       <div id="assignment-cards">
         <!-- Rendered by JS -->
       </div>
+      <section class="live-split-panel hidden" id="live-split-panel" aria-live="polite"></section>
 
       <div class="action-bar">
         <button class="btn btn-ghost" id="assign-back-btn">Back</button>
@@ -338,10 +340,11 @@
       <div class="summary-hero-card glossy-sheen" id="summary-header-card">
         <div class="summary-title">Your bill</div>
         <div class="summary-total-amount" id="summary-grand-total">—</div>
-        <div id="summary-breakdown-rows" style="margin-top:0.75rem;">
+      <div id="summary-breakdown-rows" style="margin-top:0.75rem;">
           <!-- Rendered by JS -->
         </div>
       </div>
+      <section class="fair-split-note" id="fair-split-note"></section>
 
       <h2 style="font-size:1.35rem;font-weight:800;color:var(--text-white);margin-bottom:1.25rem;">Your Share</h2>
       <div class="person-cards-grid" id="person-cards-grid">
@@ -352,6 +355,7 @@
 
       <div class="action-bar" style="justify-content:center;margin-top:2.5rem;">
         <button class="btn btn-ghost" id="summary-back-btn">Adjust</button>
+        <button class="btn btn-ghost" id="copy-summary-btn">Copy Summary</button>
         <button class="btn btn-primary btn-lg btn-tactile glossy-sheen" id="start-over-btn">
           Confirm Split
         </button>

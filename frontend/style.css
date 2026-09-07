@@ -830,6 +830,19 @@ body {
   flex-wrap: wrap;
   gap: 0.55rem;
 }
+.review-focus { margin: 0 0 1.25rem; color: var(--text-dark); }
+.review-focus > div { display:flex; justify-content:space-between; gap:1rem; align-items:center; margin-bottom:.7rem; }
+.review-focus > div span { font-size:.82rem; font-weight:700; color:var(--text-dark-muted); }
+.review-focus-item { display:block; width:100%; text-align:left; border:0; background:rgba(255,201,130,.22); color:var(--text-dark); border-radius:10px; padding:.65rem .8rem; margin-top:.4rem; font:inherit; font-weight:700; cursor:pointer; }
+.review-focus-item small { float:right; font-weight:600; color:var(--text-dark-muted); }
+.live-split-panel { background:var(--surface-purple-elev); border:1px solid var(--purple-border); border-radius:var(--radius-lg); padding:1rem 1.25rem; margin:1rem 0 1.5rem; }
+.live-split-panel > strong { display:block; }
+.live-split-panel > span { display:block; font-size:.8rem; color:var(--text-muted-purple); margin:.2rem 0 .55rem; }
+.live-person { display:flex; justify-content:space-between; padding:.4rem 0; border-top:1px solid var(--purple-border); }
+.live-person b { color:var(--peach); transition:transform .2s ease; }
+.live-person.money-moved b { animation:moneyMove .42s ease; }
+@keyframes moneyMove { 0% { transform:translateY(0); opacity:.65; } 45% { transform:translateY(-4px) scale(1.08); opacity:1; } 100% { transform:translateY(0) scale(1); } }
+@media (prefers-reduced-motion: reduce) { .live-person.money-moved b { animation:none; } }
 
 .assign-btn {
   padding: 0.5rem 1.05rem;
@@ -891,6 +904,9 @@ body {
   letter-spacing: -0.035em;
   color: var(--text-dark);
 }
+.fair-split-note { display:flex; gap:.6rem; justify-content:center; flex-wrap:wrap; color:var(--text-dark-muted); font-size:.8rem; margin-top:1rem; }
+.fair-split-note strong { color:var(--text-dark); }
+.fair-share-copy { margin:.65rem 0 0; font-size:.75rem; color:var(--text-muted-purple); font-weight:700; }
 
 .person-cards-grid {
   display: grid;

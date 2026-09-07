@@ -77,6 +77,7 @@ class BillSplitApp {
     this.$alertMismatchDetail= document.getElementById('alert-mismatch-detail');
     this.$alertIllegible     = document.getElementById('alert-illegible');
     this.$alertIllegibleDetail = document.getElementById('alert-illegible-detail');
+    this.$reviewFocus        = document.getElementById('review-focus');
     this.$reviewBackBtn      = document.getElementById('review-back-btn');
     this.$reviewContinueBtn  = document.getElementById('review-continue-btn');
 
@@ -96,6 +97,7 @@ class BillSplitApp {
     this.$unassignedAlertText= document.getElementById('unassigned-alert-text');
     this.$assignBackBtn      = document.getElementById('assign-back-btn');
     this.$calculateBtn       = document.getElementById('calculate-btn');
+    this.$liveSplitPanel     = document.getElementById('live-split-panel');
 
     // Screen 6: Summary
     this.$screenSummary      = document.getElementById('screen-summary');
@@ -103,10 +105,12 @@ class BillSplitApp {
     this.$summaryMismatchTxt = document.getElementById('summary-mismatch-text');
     this.$summaryGrandTotal  = document.getElementById('summary-grand-total');
     this.$summaryBreakdown   = document.getElementById('summary-breakdown-rows');
+    this.$fairSplitNote      = document.getElementById('fair-split-note');
     this.$personCardsGrid    = document.getElementById('person-cards-grid');
     this.$reconcileNote      = document.getElementById('reconcile-note');
     this.$summaryBackBtn     = document.getElementById('summary-back-btn');
     this.$startOverBtn       = document.getElementById('start-over-btn');
+    this.$copySummaryBtn     = document.getElementById('copy-summary-btn');
   }
 
   // ── Event Listeners ───────────────────────────────────────────────────
@@ -147,6 +151,7 @@ class BillSplitApp {
     // Screen 6: Summary
     this.$summaryBackBtn.addEventListener('click', () => this._goToScreen(5));
     this.$startOverBtn.addEventListener('click', () => this._confirmSplit());
+    this.$copySummaryBtn.addEventListener('click', () => this._copySummary());
     this.$closeHistoryBtn.addEventListener('click', () => this._closeHistory());
 
     // Allow step pills navigation for visited steps
@@ -463,6 +468,18 @@ class BillSplitApp {
     }
 
     this._liveRecalculate();
+    this._renderReviewFocus();
+  }
+
+  _renderReviewFocus() {
+    if (!this.$reviewFocus || !this.state.bill) return;
+    const uncertain = (this.state.bill.items || []).filter(item => !item.manually_added && Number(item.confidence || 0) < 0.9);
+    const totalNeedsReview = this.$alertMismatch && !this.$alertMismatch.classList.contains('hidden');
+    const count = uncertain.length + (totalNeedsReview ? 1 : 0);
+    const rows = uncertain.map(item => `<button class="review-focus-item" data-review-item="${this._esc(item.item_id)}">⚠ ${this._esc(item.name)} <small>${Math.round(Number(item.confidence) * 100)}% confidence</small></button>`).join('');
+    this.$reviewFocus.innerHTML = `<div><strong>AI review</strong><span>${count ? `⚠ ${count} field${count === 1 ? '' : 's'} need attention` : `✓ ${(this.state.bill.items || []).length} items look good`}</span></div>${totalNeedsReview ? '<button class="review-focus-item" data-review-charges>⚠ Totals need review <small>Check highlighted charges</small></button>' : ''}${rows}`;
+    this.$reviewFocus.querySelectorAll('[data-review-item]').forEach(btn => btn.addEventListener('click', () => document.querySelector(`[data-item-id="${btn.dataset.reviewItem}"]`)?.scrollIntoView({ behavior: 'smooth', block: 'center' })));
+    this.$reviewFocus.querySelector('[data-review-charges]')?.addEventListener('click', () => this.$fieldSubtotal.scrollIntoView({ behavior: 'smooth', block: 'center' }));
   }
 
   /** Recompute calculated_total live */
@@ -660,6 +677,7 @@ class BillSplitApp {
     });
 
     this._renderAssignmentCards();
+    this._renderLiveSplit();
     this._updateCalculateBtn();
   }
 
@@ -750,7 +768,44 @@ class BillSplitApp {
     }
 
     this._renderAssignmentCards();
+    this._renderLiveSplit();
     this._updateCalculateBtn();
+  }
+
+  _renderLiveSplit() {
+    if (!this.$liveSplitPanel) return;
+    const people = this.state.people;
+    const food = Object.fromEntries(people.map(person => [person.id, 0]));
+    (this.state.bill?.items || []).forEach(item => {
+      const assignment = this.state.assignments.find(a => a.item_id === item.item_id);
+      const recipients = assignment?.everyone ? people : people.filter(person => assignment?.person_ids.includes(person.id));
+      if (!recipients.length) return;
+      const share = (Number(item.total) || 0) / recipients.length;
+      recipients.forEach(person => { food[person.id] += share; });
+    });
+    this.$liveSplitPanel.classList.toggle('hidden', !people.length);
+    const previous = this._liveFoodTotals || {};
+    this.$liveFoodTotals = food;
+    this.$liveSplitPanel.innerHTML = `<strong>Live food allocation</strong><span>Shared charges are added proportionally after calculation.</span><div>${people.map(person => `<div class="live-person" data-live-person="${this._esc(person.id)}"><span>${this._esc(person.name)}</span><b data-live-amount="${this._esc(person.id)}">₹${(previous[person.id] || 0).toFixed(2)}</b></div>`).join('')}</div>`;
+    people.forEach(person => this._animateLiveAmount(person.id, previous[person.id] || 0, food[person.id]));
+  }
+
+  _animateLiveAmount(personId, from, to) {
+    const amount = this.$liveSplitPanel.querySelector(`[data-live-amount="${personId}"]`);
+    const row = this.$liveSplitPanel.querySelector(`[data-live-person="${personId}"]`);
+    if (!amount || !row) return;
+    const start = performance.now();
+    const duration = 360;
+    row.classList.remove('money-moved');
+    void row.offsetWidth;
+    row.classList.add('money-moved');
+    const draw = now => {
+      const progress = Math.min(1, (now - start) / duration);
+      const eased = 1 - Math.pow(1 - progress, 3);
+      amount.textContent = `₹${(from + (to - from) * eased).toFixed(2)}`;
+      if (progress < 1) requestAnimationFrame(draw);
+    };
+    requestAnimationFrame(draw);
   }
 
   _updateCalculateBtn() {
@@ -872,6 +927,8 @@ class BillSplitApp {
 
       const personGrandNum = parseFloat(ps.grand_total) || 0;
       const propPct = Math.min(100, Math.round((personGrandNum / grandTotalNum) * 100));
+      const foodTotal = result.people_splits.reduce((sum, person) => sum + (parseFloat(person.food_total) || 0), 0) || 1;
+      const foodPct = Math.round(((parseFloat(ps.food_total) || 0) / foodTotal) * 100);
 
       return `
         <div class="person-card">
@@ -889,6 +946,7 @@ class BillSplitApp {
                 <div class="proportional-bar-fill" style="width:${propPct}%;background:${avatarColors[i % avatarColors.length]};"></div>
               </div>
             </div>
+            <p class="fair-share-copy">${foodPct}% of food consumed · ${foodPct}% of shared charges</p>
           </div>
 
           <div class="person-card-body">
@@ -901,6 +959,21 @@ class BillSplitApp {
     this.$reconcileNote.textContent =
       `✓ All amounts verified: ₹${result.sum_of_splits} total across ${result.people_splits.length} people ` +
       `= ₹${result.bill_calculated_total} bill total. Penny-reconciled.`;
+    this.$fairSplitNote.innerHTML = '<strong>Fair split</strong><span>GST, service charge and discounts follow each person’s food share—not the headcount.</span>';
+  }
+
+  async _copySummary() {
+    const result = this.state.splitResult;
+    if (!result) return;
+    const lines = ['BillSplit AI', '', `Total: ₹${result.bill_calculated_total}`, ''];
+    result.people_splits.forEach(split => lines.push(`${split.person.name}: ₹${split.grand_total}`));
+    lines.push('', 'Split calculated proportionally by BillSplit AI.');
+    try {
+      await navigator.clipboard.writeText(lines.join('\n'));
+      this._showToast('Summary copied');
+    } catch {
+      this._showToast('Copy unavailable in this browser');
+    }
   }
 
   // ── Reset ─────────────────────────────────────────────────────────────
