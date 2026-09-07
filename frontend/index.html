@@ -70,7 +70,7 @@
         </div>
 
         <div class="upload-zone" id="upload-zone">
-          <input type="file" id="file-input" accept="image/jpeg,image/png,image/webp,image/heic,image/heif" />
+          <input type="file" id="file-input" multiple accept="image/jpeg,image/png,image/webp,image/heic,image/heif" />
           <span class="upload-icon" aria-hidden="true"></span>
           <h2>Upload bill photo</h2>
           <p>Drag &amp; drop or click to browse (JPG, PNG)</p>
@@ -79,6 +79,7 @@
         <div class="upload-preview-wrap" id="upload-preview-wrap" style="display:none;margin-top:1.5rem;position:relative;">
           <img id="upload-preview-img" src="" alt="Bill preview" style="width:100%;max-height:340px;object-fit:contain;border-radius:var(--radius-lg);" />
           <button class="preview-remove" id="preview-remove-btn" title="Remove image">×</button>
+          <button class="btn btn-ghost btn-sm add-photo-btn" id="add-photo-btn" type="button">+ Add another photo</button>
         </div>
 
         <div class="analyze-row">
@@ -98,9 +99,18 @@
 
       <!-- Recent History Section -->
       <div class="recent-bills-wrap">
-        <h3 style="font-size:0.85rem;color:var(--text-muted-purple);text-transform:uppercase;letter-spacing:0.1em;font-weight:800;">Recent Splits</h3>
+        <h3 style="font-size:0.85rem;color:var(--text-muted-purple);text-transform:uppercase;letter-spacing:0.1em;font-weight:800;">Past Bills</h3>
         <div class="recent-bills-grid" id="recent-bills-grid"></div>
       </div>
+
+      <section class="history-panel hidden" id="past-bills-panel" aria-label="Past bills">
+        <div class="history-panel-header">
+          <div><h2>Past Bills</h2><p>Your previous splits</p></div>
+          <button class="icon-button" id="close-history-btn" title="Close past bills">×</button>
+        </div>
+        <div id="past-bills-list"></div>
+        <div class="history-detail hidden" id="history-detail"></div>
+      </section>
     </main>
 
     <!-- ══════════════════════════════════════════════════════════════════
@@ -343,12 +353,14 @@
       <div class="action-bar" style="justify-content:center;margin-top:2.5rem;">
         <button class="btn btn-ghost" id="summary-back-btn">Adjust</button>
         <button class="btn btn-primary btn-lg btn-tactile glossy-sheen" id="start-over-btn">
-          Confirm Split &amp; Start Another
+          Confirm Split
         </button>
       </div>
     </main>
 
   </div><!-- /.app-container -->
+
+  <div class="app-toast" id="app-toast" role="status" aria-live="polite"></div>
 
   <script src="app.js"></script>
 </body>

@@ -1,0 +1,12 @@
+[
+  {
+    "filename": "cord_sample.png",
+    "source": "https://github.com/clovaai/cord/blob/master/figure/sample.png",
+    "download_url": "https://raw.githubusercontent.com/clovaai/cord/master/figure/sample.png",
+    "dataset": "CORD: A Consolidated Receipt Dataset for Post-OCR Parsing",
+    "license": "Creative Commons Attribution 4.0 International (CC BY 4.0)",
+    "license_url": "https://creativecommons.org/licenses/by/4.0/",
+    "attribution": "Clova AI / CORD dataset contributors",
+    "purpose": "Supplemental development and extraction testing only; not an assignment bill."
+  }
+]

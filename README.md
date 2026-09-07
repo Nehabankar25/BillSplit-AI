@@ -44,9 +44,14 @@ python -m uvicorn backend.main:app --reload --port 8000
 ## What Is Real vs Mocked
 
 - **Real:** receipt upload, FastAPI routing, Gemini Vision extraction, Pydantic validation, human edits, stable item IDs, participant assignment, Decimal calculations, proportional tax/service-charge allocation, mismatch warnings, and penny reconciliation.
+- **Real:** one or two receipt photos can be sent to Gemini as one combined bill through `POST /api/bills/analyze-multiple`.
 - **Mocked/demo:** **Try Sample Bill** calls `GET /api/bills/demo`, which returns a fixed in-memory sample bill. It does not call Gemini and exists for a no-key demonstration.
 - **Local-only:** participants and recent split history are not saved to a backend database or shared across users.
 - No login, database, payments, cloud deployment, or authentication is included in this MVP.
+
+### Past Bills
+
+Completed splits are stored locally in browser `localStorage` under `billsplit_past_bills`. The history contains structured bill and final split data only; it does not store receipt images, Gemini keys, or other secrets. History is not persisted in a backend database and is not shared between users or devices. The 12-bill evaluation dataset remains separate under `test_data/bills/` with labels in `test_data/ground_truth.json`.
 
 ---
 
@@ -180,8 +185,23 @@ Bills that compute tax on the post-discount subtotal will show a small `total_mi
 
 ## Test Data
 
-`test_data/bills/` — Place your 12 test photographs here (gitignored by default).
-`test_data/ground_truth.json` — Template with fields for all 12 required scenarios:
+The test-data folders have intentionally separate roles:
+
+- `test_data/bills/` — the official 12 real bills personally photographed for the assignment. These are not currently included because they must be real photographs and manually labeled.
+- `test_data/online_samples/` — supplemental development/testing receipts downloaded from an explicitly licensed source. Source and license details are recorded beside the files. Online samples do **not** satisfy or replace the 12-bill requirement.
+- `test_data/ground_truth.json` — manually verified expected values for the official 12 assignment bills. Participant assignments are not part of extraction ground truth.
+
+### Developer Evaluation Utility
+
+The developer-only evaluator uses the same Gemini extraction service as the application and reports field-level differences when a matching ground-truth entry exists. It does not affect the production flow:
+
+```powershell
+& ".\backend\venv\Scripts\python.exe" tools\evaluate_receipts.py test_data\online_samples\cord_sample.png
+```
+
+For official bills, use a filename that exists in `ground_truth.json`. The utility requires the local `backend/.env` Gemini configuration and never stores credentials or writes to browser history.
+
+The official 12-bill evaluation scenarios are:
 
 | # | Scenario |
 |---|---|
@@ -206,6 +226,7 @@ Bills that compute tax on the post-discount subtotal will show a small `total_mi
 |---|---|---|
 | `GET` | `/health` | Liveness probe |
 | `POST` | `/api/bills/analyze` | Upload image → `Bill` JSON |
+| `POST` | `/api/bills/analyze-multiple` | Upload one or two consecutive images → one merged `Bill` JSON |
 | `POST` | `/api/bills/validate` | Re-validate edited bill → `Bill` JSON |
 | `POST` | `/api/split/calculate` | `SplitRequest` → `SplitResult` |
 | `GET` | `/docs` | Swagger UI |
@@ -238,4 +259,4 @@ The suite covers health checks, bill re-validation, stable item IDs, unassigned-
 
 - This MVP has no login, database, payments, or cloud deployment.
 - Participants and recent split history are local to the current browser session/device.
-- The two-photo long-bill scenario is represented in the evaluation template and requires manual combination during review.
+- The two-photo long-bill scenario supports two consecutive images and depends on Gemini correctly combining the pages; human review remains available for corrections.

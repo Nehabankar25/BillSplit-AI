@@ -127,3 +127,48 @@ def extract_bill_from_image(
             f"Could not parse Gemini response as BillExtract: {exc}\n"
             f"Raw response: {raw_text[:500]}"
         ) from exc
+
+
+def extract_bill_from_images(
+    images: list[tuple[bytes, str]],
+    api_key_override: str | None = None,
+) -> BillExtract:
+    """Extract one structured bill from one or two receipt photographs."""
+    if not images:
+        raise RuntimeError("At least one bill image is required.")
+
+    client = _get_client(api_key_override=api_key_override)
+    model_name = os.getenv("GEMINI_MODEL", "gemini-2.5-flash")
+    image_parts = [
+        types.Part.from_bytes(data=image_bytes, mime_type=content_type)
+        for image_bytes, content_type in images
+    ]
+    prompt = (
+        EXTRACTION_PROMPT
+        + "\nThese photos are consecutive pages of the same bill. Combine their line items "
+        "and charges into one BillExtract. Do not duplicate items visible in both photos."
+    )
+
+    try:
+        response = client.models.generate_content(
+            model=model_name,
+            contents=[*image_parts, prompt],
+            config=types.GenerateContentConfig(
+                response_mime_type="application/json",
+                response_schema=BillExtract,
+                temperature=0.0,
+            ),
+        )
+    except Exception as exc:
+        raise RuntimeError(f"Gemini API call failed: {exc}") from exc
+
+    raw_text = response.text
+    if not raw_text:
+        raise RuntimeError("Gemini returned an empty response.")
+    try:
+        return BillExtract.model_validate_json(raw_text)
+    except Exception as exc:
+        raise RuntimeError(
+            f"Could not parse Gemini response as BillExtract: {exc}\n"
+            f"Raw response: {raw_text[:500]}"
+        ) from exc

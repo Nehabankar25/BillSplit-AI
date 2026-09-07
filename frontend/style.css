@@ -1302,12 +1302,33 @@ body { font-family: 'Manrope', sans-serif; letter-spacing: 0; }
 .recent-bills-wrap h3 { font-size: 0.7rem !important; letter-spacing: 0.11em !important; }
 .recent-bills-grid { display: grid; gap: 0; margin-top: 0.3rem; }
 .recent-row { display: flex; align-items: center; gap: 0.7rem; padding: 0.8rem 0.15rem; border-bottom: 1px solid rgba(184,174,202,0.13); }
+.recent-row, .history-list-row { width: 100%; border-top: 0; border-left: 0; border-right: 0; text-align: left; font: inherit; cursor: pointer; }
+.recent-row:hover, .history-list-row:hover { background: rgba(242,191,130,0.06); }
 .recent-row-icon { width: 28px; height: 28px; border-radius: 9px; background: rgba(242,191,130,0.16); position: relative; flex-shrink: 0; }
 .recent-row-icon::before { content: ''; position: absolute; inset: 8px 9px; border: 1px solid var(--peach); border-radius: 2px; }
 .recent-row-copy { display: flex; flex-direction: column; gap: 0.12rem; min-width: 0; }
 .recent-row-copy strong { color: var(--text-white); font-size: 0.8rem; font-weight: 600; }
 .recent-row-copy small { color: var(--text-muted-purple); font-size: 0.67rem; font-weight: 500; }
 .recent-row-amount { margin-left: auto; color: var(--text-white); font-size: 0.82rem; font-weight: 800; }
+.history-panel { margin-top: 1.25rem; padding: 1.15rem; border: 1px solid var(--purple-border); border-radius: var(--radius-lg); background: rgba(52,41,87,0.72); box-shadow: var(--shadow-floating); }
+.history-panel-header { display: flex; align-items: flex-start; justify-content: space-between; gap: 1rem; margin-bottom: 0.7rem; }
+.history-panel-header h2 { color: var(--text-white); font-size: 1.05rem; font-weight: 700; }
+.history-panel-header p { margin-top: 0.15rem; color: var(--text-muted-purple); font-size: 0.72rem; }
+.icon-button { width: 30px; height: 30px; border: 1px solid var(--purple-border); border-radius: 50%; background: transparent; color: var(--text-muted-purple); cursor: pointer; font-size: 1.15rem; line-height: 1; }
+.history-list-row { display: flex; align-items: center; gap: 0.7rem; padding: 0.72rem 0.15rem; color: var(--text-white); background: transparent; border-bottom: 1px solid rgba(184,174,202,0.13); }
+.history-back { margin-bottom: 0.9rem; border: 0; background: none; color: var(--peach); cursor: pointer; font: inherit; font-size: 0.72rem; font-weight: 700; }
+.history-detail-hero { padding: 0.7rem 0 1rem; border-bottom: 1px solid rgba(184,174,202,0.13); }
+.history-detail-hero h2 { margin-top: 0.5rem; color: var(--text-white); font-size: 1.15rem; font-weight: 700; }
+.history-detail-hero strong { display: block; margin-top: 0.2rem; color: var(--peach); font-size: 2rem; font-weight: 800; letter-spacing: -0.04em; }
+.history-detail-hero > span:last-child { color: var(--text-muted-purple); font-size: 0.7rem; }
+.history-detail-section { padding: 0.9rem 0; border-bottom: 1px solid rgba(184,174,202,0.13); }
+.history-detail-section h3 { margin-bottom: 0.35rem; color: var(--text-muted-purple); font-size: 0.62rem; font-weight: 800; letter-spacing: 0.12em; text-transform: uppercase; }
+.history-line { display: flex; justify-content: space-between; gap: 1rem; padding: 0.3rem 0; color: var(--text-muted-purple); font-size: 0.76rem; }
+.history-line strong { color: var(--text-white); font-weight: 700; }
+.history-line-total { margin-top: 0.3rem; padding-top: 0.55rem; border-top: 1px dashed rgba(184,174,202,0.22); color: var(--text-white); font-weight: 700; }
+.history-delete { margin-top: 1rem; width: 100%; color: #FFD1D1; }
+.app-toast { position: fixed; left: 50%; bottom: 1.5rem; z-index: 20; padding: 0.72rem 1rem; border: 1px solid rgba(242,191,130,0.35); border-radius: var(--radius-pill); background: var(--surface-purple-elev); color: var(--cream-light); box-shadow: var(--shadow-floating); font-size: 0.78rem; font-weight: 700; opacity: 0; pointer-events: none; transform: translate(-50%, 12px); transition: opacity 180ms ease, transform 180ms ease; }
+.app-toast.show { opacity: 1; transform: translate(-50%, 0); }
 
 /* Compact inner workflow typography and money hierarchy. */
 .screen-heading { margin: 1.5rem 0 1rem; }

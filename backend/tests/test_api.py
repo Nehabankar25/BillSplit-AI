@@ -12,6 +12,7 @@ Tests:
 
 import sys
 from pathlib import Path
+from unittest.mock import patch
 
 _repo_root = str(Path(__file__).resolve().parent.parent.parent)
 if _repo_root not in sys.path:
@@ -21,7 +22,7 @@ from decimal import Decimal
 from fastapi.testclient import TestClient
 
 from backend.main import app
-from backend.models.bill import Bill, BillItem
+from backend.models.bill import Bill, BillExtract, BillItem, BillItemExtract
 from backend.models.split import Person, ItemAssignment, SplitRequest
 from backend.services.calculation_service import calculate_split
 
@@ -32,6 +33,129 @@ def test_health():
     response = client.get("/health")
     assert response.status_code == 200
     assert response.json() == {"status": "ok", "service": "BillSplit AI"}
+
+
+def test_bill_upload_rejects_unsupported_type():
+    response = client.post(
+        "/api/bills/analyze",
+        files={"file": ("notes.txt", b"not an image", "text/plain")},
+    )
+
+    assert response.status_code == 415
+    assert "Unsupported file type" in response.json()["detail"]
+
+
+def test_bill_upload_rejects_empty_file():
+    response = client.post(
+        "/api/bills/analyze",
+        files={"file": ("empty.jpg", b"", "image/jpeg")},
+    )
+
+    assert response.status_code == 400
+    assert response.json()["detail"] == "Uploaded file is empty."
+
+
+def test_bill_upload_rejects_file_over_10_mb():
+    oversized_image = b"0" * (10 * 1024 * 1024 + 1)
+    response = client.post(
+        "/api/bills/analyze",
+        files={"file": ("large.jpg", oversized_image, "image/jpeg")},
+    )
+
+    assert response.status_code == 413
+    assert "File too large" in response.json()["detail"]
+
+
+def test_bill_upload_accepts_supported_image_types_without_calling_real_gemini():
+    extract = BillExtract(
+        items=[
+            BillItemExtract(
+                name="Test Item",
+                quantity=Decimal("1"),
+                unit_price=Decimal("10.00"),
+                total=Decimal("10.00"),
+                confidence=0.9,
+            )
+        ],
+        subtotal=Decimal("10.00"),
+        tax=Decimal("0.00"),
+        service_charge=Decimal("0.00"),
+        discount=Decimal("0.00"),
+        printed_total=Decimal("10.00"),
+    )
+
+    supported_types = [
+        ("image/jpeg", "bill.jpg"),
+        ("image/jpg", "bill.jpg"),
+        ("image/png", "bill.png"),
+        ("image/webp", "bill.webp"),
+        ("image/heic", "bill.heic"),
+        ("image/heif", "bill.heif"),
+    ]
+
+    with patch(
+        "backend.api.bill.gemini_service.extract_bill_from_image",
+        return_value=extract,
+    ) as extract_mock:
+        for content_type, filename in supported_types:
+            response = client.post(
+                "/api/bills/analyze",
+                files={"file": (filename, b"synthetic image bytes", content_type)},
+            )
+
+            assert response.status_code == 200
+            assert response.json()["items"][0]["name"] == "Test Item"
+
+        assert extract_mock.call_count == len(supported_types)
+
+
+def test_multiple_bill_upload_combines_two_photos_without_calling_real_gemini():
+    extract = BillExtract(
+        items=[
+            BillItemExtract(
+                name="Page One Item",
+                quantity=Decimal("1"),
+                unit_price=Decimal("25.00"),
+                total=Decimal("25.00"),
+                confidence=0.85,
+            )
+        ],
+        subtotal=Decimal("25.00"),
+        tax=Decimal("2.50"),
+        service_charge=Decimal("0.00"),
+        discount=Decimal("0.00"),
+        printed_total=Decimal("27.50"),
+    )
+
+    with patch(
+        "backend.api.bill.gemini_service.extract_bill_from_images",
+        return_value=extract,
+    ) as extract_mock:
+        response = client.post(
+            "/api/bills/analyze-multiple",
+            files=[
+                ("files", ("page-1.jpg", b"first image", "image/jpeg")),
+                ("files", ("page-2.jpg", b"second image", "image/jpeg")),
+            ],
+        )
+
+    assert response.status_code == 200
+    assert response.json()["calculated_total"] == "27.50"
+    assert extract_mock.call_count == 1
+
+
+def test_multiple_bill_upload_rejects_more_than_two_photos():
+    response = client.post(
+        "/api/bills/analyze-multiple",
+        files=[
+            ("files", ("page-1.jpg", b"one", "image/jpeg")),
+            ("files", ("page-2.jpg", b"two", "image/jpeg")),
+            ("files", ("page-3.jpg", b"three", "image/jpeg")),
+        ],
+    )
+
+    assert response.status_code == 400
+    assert "one or two" in response.json()["detail"]
 
 
 def test_penny_reconciliation_exact_cents():

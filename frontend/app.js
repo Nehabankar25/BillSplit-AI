@@ -8,11 +8,14 @@
 'use strict';
 
 const API_BASE = '';  // same origin; FastAPI serves both API and frontend
+const PAST_BILLS_KEY = 'billsplit_past_bills';
+const MAX_PAST_BILLS = 20;
 
 class BillSplitApp {
   constructor() {
     this.state = {
       uploadedFile: null,   // File object
+      uploadedFiles: [],    // One or two receipt photos
       previewDataUrl: null, // Data URL for preview image
       bill: null,           // Bill object from server
       people: [],           // [{ id, name }, ...]
@@ -24,6 +27,7 @@ class BillSplitApp {
     this._bindElements();
     this._attachEventListeners();
     this._renderRecentBills();
+    this._renderPastBillsList();
     this._goToScreen(1);
   }
 
@@ -40,10 +44,15 @@ class BillSplitApp {
     this.$previewWrap      = document.getElementById('upload-preview-wrap');
     this.$previewImg       = document.getElementById('upload-preview-img');
     this.$previewRemoveBtn = document.getElementById('preview-remove-btn');
+    this.$addPhotoBtn      = document.getElementById('add-photo-btn');
     this.$analyzeBtn       = document.getElementById('analyze-btn');
     this.$demoBtn          = document.getElementById('demo-btn');
     this.$uploadError      = document.getElementById('upload-error');
     this.$recentBillsGrid  = document.getElementById('recent-bills-grid');
+    this.$pastBillsPanel   = document.getElementById('past-bills-panel');
+    this.$pastBillsList    = document.getElementById('past-bills-list');
+    this.$historyDetail    = document.getElementById('history-detail');
+    this.$closeHistoryBtn  = document.getElementById('close-history-btn');
 
     // Screen 2: AI Analysis
     this.$screenAnalysis     = document.getElementById('screen-analysis');
@@ -108,6 +117,10 @@ class BillSplitApp {
     this.$uploadZone.addEventListener('dragleave', () => this.$uploadZone.classList.remove('drag-over'));
     this.$uploadZone.addEventListener('drop', e => { e.preventDefault(); this.$uploadZone.classList.remove('drag-over'); this._onFileDrop(e); });
     this.$previewRemoveBtn.addEventListener('click', () => this._clearFile());
+    this.$addPhotoBtn.addEventListener('click', () => {
+      this._addingPhoto = true;
+      this.$fileInput.click();
+    });
     this.$analyzeBtn.addEventListener('click', () => this._startAnalysisFlow());
     if (this.$demoBtn) this.$demoBtn.addEventListener('click', () => this._loadDemoBillFlow());
 
@@ -133,7 +146,8 @@ class BillSplitApp {
 
     // Screen 6: Summary
     this.$summaryBackBtn.addEventListener('click', () => this._goToScreen(5));
-    this.$startOverBtn.addEventListener('click', () => this._resetAll());
+    this.$startOverBtn.addEventListener('click', () => this._confirmSplit());
+    this.$closeHistoryBtn.addEventListener('click', () => this._closeHistory());
 
     // Allow step pills navigation for visited steps
     this.$steps.forEach((stepEl, idx) => {
@@ -171,28 +185,37 @@ class BillSplitApp {
 
   // ── File Selection ────────────────────────────────────────────────────
   _onFileSelected(e) {
-    const file = e.target.files[0];
-    if (file) this._loadFile(file);
+    const selected = Array.from(e.target.files);
+    const files = this._addingPhoto
+      ? [...this.state.uploadedFiles, ...selected]
+      : selected;
+    this._addingPhoto = false;
+    this._loadFiles(files);
   }
 
   _onFileDrop(e) {
-    const file = e.dataTransfer.files[0];
-    if (file) this._loadFile(file);
+    this._loadFiles(Array.from(e.dataTransfer.files));
   }
 
-  _loadFile(file) {
+  _loadFiles(files) {
     const ALLOWED = ['image/jpeg', 'image/png', 'image/webp', 'image/heic', 'image/heif'];
-    if (!ALLOWED.includes(file.type)) {
+    if (!files.length || files.length > 2) {
+      this._showUploadError('Upload one or two receipt photos.');
+      return;
+    }
+    if (files.some(file => !ALLOWED.includes(file.type))) {
       this._showUploadError('Unsupported file type. Please upload a JPEG, PNG, WebP, or HEIC image.');
       return;
     }
-    if (file.size > 10 * 1024 * 1024) {
+    if (files.some(file => file.size > 10 * 1024 * 1024)) {
       this._showUploadError('File is too large. Maximum size is 10 MB.');
       return;
     }
 
     this._clearUploadError();
-    this.state.uploadedFile = file;
+    this.state.uploadedFiles = files;
+    this.state.uploadedFile = files[0];
+    this.$addPhotoBtn.classList.toggle('hidden', files.length >= 2);
 
     const reader = new FileReader();
     reader.onload = e => {
@@ -200,17 +223,20 @@ class BillSplitApp {
       this.$previewImg.src = e.target.result;
       this.$previewWrap.style.display = 'block';
     };
-    reader.readAsDataURL(file);
+    reader.readAsDataURL(files[0]);
 
     this.$analyzeBtn.disabled = false;
   }
 
   _clearFile() {
     this.state.uploadedFile = null;
+    this.state.uploadedFiles = [];
     this.state.previewDataUrl = null;
     this.$previewImg.src = '';
     this.$previewWrap.style.display = 'none';
+    this.$addPhotoBtn.classList.add('hidden');
     this.$fileInput.value = '';
+    this._addingPhoto = false;
     this.$analyzeBtn.disabled = true;
     this._clearUploadError();
   }
@@ -227,7 +253,7 @@ class BillSplitApp {
 
   // ── Screen 2: AI Analysis Flow ───────────────────────────────────────
   async _startAnalysisFlow() {
-    if (!this.state.uploadedFile) return;
+    if (!this.state.uploadedFiles.length) return;
 
     this._goToScreen(2);
     this.$analysisPreviewImg.src = this.state.previewDataUrl || '';
@@ -251,10 +277,13 @@ class BillSplitApp {
     }, 450);
 
     const formData = new FormData();
-    formData.append('file', this.state.uploadedFile);
+    const uploadFiles = this.state.uploadedFiles;
+    const endpoint = uploadFiles.length > 1 ? '/api/bills/analyze-multiple' : '/api/bills/analyze';
+    const fieldName = uploadFiles.length > 1 ? 'files' : 'file';
+    uploadFiles.forEach(file => formData.append(fieldName, file));
 
     try {
-      const res = await fetch(`${API_BASE}/api/bills/analyze`, {
+      const res = await fetch(`${API_BASE}${endpoint}`, {
         method: 'POST',
         body: formData,
       });
@@ -263,7 +292,7 @@ class BillSplitApp {
 
       if (!res.ok) {
         const err = await res.json().catch(() => ({ detail: res.statusText }));
-        throw new Error(err.detail || `Server error ${res.status}`);
+        throw new Error(this._formatApiError(err.detail || `Server error ${res.status}`));
       }
 
       this.state.bill = await res.json();
@@ -779,7 +808,6 @@ class BillSplitApp {
       }
 
       this.state.splitResult = await res.json();
-      this._saveRecentSplit();
       this._renderSummary();
       this._goToScreen(6);
 
@@ -877,7 +905,7 @@ class BillSplitApp {
 
   // ── Reset ─────────────────────────────────────────────────────────────
   _resetAll() {
-    this.state = { uploadedFile: null, previewDataUrl: null, bill: null, people: [], assignments: [], splitResult: null };
+    this.state = { uploadedFile: null, uploadedFiles: [], previewDataUrl: null, bill: null, people: [], assignments: [], splitResult: null };
     this._personCounter = 0;
     this._clearFile();
     this.$itemsTbody.innerHTML = '';
@@ -887,55 +915,172 @@ class BillSplitApp {
     this._goToScreen(1);
   }
 
-  _getRecentSplits() {
+  _getPastBills() {
     try {
-      const stored = JSON.parse(localStorage.getItem('billsplit_recent_splits') || '[]');
+      const stored = JSON.parse(localStorage.getItem(PAST_BILLS_KEY) || '[]');
       return Array.isArray(stored) ? stored : [];
     } catch {
       return [];
     }
   }
 
-  _saveRecentSplit() {
+  _savePastBill() {
     const result = this.state.splitResult;
-    if (!result) return;
+    const bill = this.state.bill;
+    if (!result || !bill) return null;
 
-    const recent = this._getRecentSplits();
-    recent.unshift({
-      id: `${Date.now()}`,
-      total: result.bill_calculated_total,
-      people: result.people_splits.length,
-      createdAt: new Date().toISOString(),
-    });
+    const historyBill = {
+      id: `history_${Date.now()}_${Math.random().toString(36).slice(2, 7)}`,
+      created_at: new Date().toISOString(),
+      title: 'Completed split',
+      currency: bill.currency || 'INR',
+      currency_symbol: bill.currency === '₹' ? '₹' : (bill.currency || '₹'),
+      printed_total: bill.printed_total,
+      calculated_total: result.bill_calculated_total,
+      participant_count: result.people_splits.length,
+      participants: result.people_splits.map(split => ({
+        id: split.person.id,
+        name: split.person.name,
+        amount: split.grand_total,
+      })),
+      items: (bill.items || []).map(item => ({
+        id: item.item_id,
+        name: item.name,
+        quantity: item.quantity,
+        total: item.total,
+      })),
+      items_subtotal: bill.items_subtotal || bill.subtotal,
+      tax: bill.tax,
+      service_charge: bill.service_charge,
+      discount: bill.discount,
+    };
+    const pastBills = this._getPastBills();
+    pastBills.unshift(historyBill);
 
     try {
-      localStorage.setItem('billsplit_recent_splits', JSON.stringify(recent.slice(0, 5)));
+      localStorage.setItem(PAST_BILLS_KEY, JSON.stringify(pastBills.slice(0, MAX_PAST_BILLS)));
     } catch {
-      // History remains optional if browser storage is unavailable.
+      return null;
     }
     this._renderRecentBills();
+    return historyBill;
   }
 
   _renderRecentBills() {
     if (!this.$recentBillsGrid) return;
-    const recent = this._getRecentSplits();
+    const recent = this._getPastBills().slice(0, 5);
 
     if (!recent.length) {
-      this.$recentBillsGrid.innerHTML = '<span class="recent-empty">Your completed splits will appear here.</span>';
+      this.$recentBillsGrid.innerHTML = '<span class="recent-empty">No completed splits yet. Upload a bill to get started.</span>';
       return;
     }
 
-    this.$recentBillsGrid.innerHTML = recent.map(split => {
-      const date = new Date(split.createdAt);
-      const label = Number.isNaN(date.getTime()) ? 'Recent split' : date.toLocaleDateString(undefined, { month: 'short', day: 'numeric' });
+    this.$recentBillsGrid.innerHTML = recent.map(bill => {
+      const label = this._formatHistoryDate(bill.created_at);
       return `
-        <div class="recent-row">
+        <button class="recent-row" data-history-id="${this._esc(bill.id)}">
           <span class="recent-row-icon" aria-hidden="true"></span>
-          <span class="recent-row-copy"><strong>Completed split</strong><small>${this._esc(label)} · ${split.people} people</small></span>
-          <strong class="recent-row-amount">₹${this._esc(split.total)}</strong>
-        </div>
+          <span class="recent-row-copy"><strong>${this._esc(bill.title)}</strong><small>${this._esc(label)} · ${bill.participant_count} people</small></span>
+          <strong class="recent-row-amount">${this._formatMoney(bill.calculated_total, bill.currency_symbol)}</strong>
+        </button>
       `;
     }).join('');
+    this.$recentBillsGrid.querySelectorAll('[data-history-id]').forEach(row => {
+      row.addEventListener('click', () => this._openHistory(row.dataset.historyId));
+    });
+  }
+
+  _formatHistoryDate(value) {
+    const date = new Date(value);
+    if (Number.isNaN(date.getTime())) return 'Recent';
+    return date.toLocaleDateString(undefined, { month: 'short', day: 'numeric' });
+  }
+
+  _formatMoney(value, symbol = '₹') {
+    return `${symbol}${Number.parseFloat(value || 0).toFixed(2)}`;
+  }
+
+  _openHistory(historyId) {
+    const bill = this._getPastBills().find(entry => entry.id === historyId);
+    if (!bill) return;
+    this.$pastBillsPanel.classList.remove('hidden');
+    this.$historyDetail.classList.remove('hidden');
+    this.$pastBillsList.classList.add('hidden');
+    this.$historyDetail.innerHTML = `
+      <button class="history-back" data-history-back>Back to Past Bills</button>
+      <div class="history-detail-hero">
+        <span class="eyebrow eyebrow-dark"><span class="eyebrow-dot"></span> Completed split</span>
+        <h2>${this._esc(bill.title)}</h2>
+        <strong>${this._formatMoney(bill.calculated_total, bill.currency_symbol)}</strong>
+        <span>${bill.participant_count} people · ${this._formatHistoryDate(bill.created_at)}</span>
+      </div>
+      <div class="history-detail-section"><h3>Items</h3>${bill.items.map(item => `<div class="history-line"><span>${this._esc(item.name || 'Unnamed item')}</span><strong>${this._formatMoney(item.total, bill.currency_symbol)}</strong></div>`).join('')}</div>
+      <div class="history-detail-section"><h3>Bill breakdown</h3>
+        <div class="history-line"><span>Items subtotal</span><strong>${this._formatMoney(bill.items_subtotal, bill.currency_symbol)}</strong></div>
+        <div class="history-line"><span>Tax</span><strong>${this._formatMoney(bill.tax, bill.currency_symbol)}</strong></div>
+        <div class="history-line"><span>Service charge</span><strong>${this._formatMoney(bill.service_charge, bill.currency_symbol)}</strong></div>
+        ${Number.parseFloat(bill.discount) ? `<div class="history-line"><span>Discount</span><strong>-${this._formatMoney(bill.discount, bill.currency_symbol)}</strong></div>` : ''}
+        <div class="history-line history-line-total"><span>Total</span><strong>${this._formatMoney(bill.calculated_total, bill.currency_symbol)}</strong></div>
+      </div>
+      <div class="history-detail-section"><h3>Who owes</h3>${bill.participants.map(person => `<div class="history-line"><span>${this._esc(person.name)}</span><strong>${this._formatMoney(person.amount, bill.currency_symbol)}</strong></div>`).join('')}</div>
+      <button class="btn btn-ghost history-delete" data-history-delete="${this._esc(bill.id)}">Delete this past bill</button>
+    `;
+    this.$historyDetail.querySelector('[data-history-back]').addEventListener('click', () => {
+      this.$historyDetail.classList.add('hidden');
+      this.$pastBillsList.classList.remove('hidden');
+    });
+    this.$historyDetail.querySelector('[data-history-delete]').addEventListener('click', () => this._deleteHistory(bill.id));
+  }
+
+  _renderPastBillsList() {
+    const bills = this._getPastBills();
+    this.$pastBillsList.innerHTML = bills.length
+      ? bills.map(bill => `<button class="history-list-row" data-history-id="${this._esc(bill.id)}"><span class="recent-row-icon" aria-hidden="true"></span><span class="recent-row-copy"><strong>${this._esc(bill.title)}</strong><small>${this._formatHistoryDate(bill.created_at)} · ${bill.participant_count} people</small></span><strong class="recent-row-amount">${this._formatMoney(bill.calculated_total, bill.currency_symbol)}</strong></button>`).join('')
+      : '<span class="recent-empty">No completed splits yet.</span>';
+    this.$pastBillsList.querySelectorAll('[data-history-id]').forEach(row => row.addEventListener('click', () => this._openHistory(row.dataset.historyId)));
+  }
+
+  _deleteHistory(historyId) {
+    if (!window.confirm('Delete this past bill?')) return;
+    const remaining = this._getPastBills().filter(bill => bill.id !== historyId);
+    localStorage.setItem(PAST_BILLS_KEY, JSON.stringify(remaining));
+    this._renderRecentBills();
+    this._renderPastBillsList();
+    this.$historyDetail.classList.add('hidden');
+    this.$pastBillsList.classList.remove('hidden');
+  }
+
+  _closeHistory() {
+    this.$pastBillsPanel.classList.add('hidden');
+    this.$historyDetail.classList.add('hidden');
+    this.$pastBillsList.classList.remove('hidden');
+  }
+
+  _confirmSplit() {
+    if (!this.state.splitResult) return;
+    const saved = this._savePastBill();
+    this._resetAll();
+    this._showToast(saved ? 'Split saved' : 'Split completed');
+  }
+
+  _showToast(message) {
+    let toast = document.getElementById('app-toast');
+    if (!toast) return;
+    toast.textContent = `✓ ${message}`;
+    toast.classList.add('show');
+    window.setTimeout(() => toast.classList.remove('show'), 2200);
+  }
+
+  _formatApiError(detail) {
+    if (Array.isArray(detail)) {
+      return detail.map(error => {
+        if (typeof error === 'string') return error;
+        const location = Array.isArray(error?.loc) ? `${error.loc.join('.')}: ` : '';
+        return `${location}${error?.msg || JSON.stringify(error)}`;
+      }).join(' ');
+    }
+    if (detail && typeof detail === 'object') return detail.msg || JSON.stringify(detail);
+    return String(detail);
   }
 
   // ── Utilities ─────────────────────────────────────────────────────────

@@ -71,6 +71,34 @@ async def analyze_bill(
     return extraction_service.build_bill(extract)
 
 
+@router.post("/analyze-multiple", response_model=Bill)
+async def analyze_multiple_bills(
+    files: list[UploadFile] = File(...),
+    x_gemini_key: str | None = Header(default=None),
+) -> Bill:
+    """Combine one or two consecutive bill photos into one extracted bill."""
+    if not 1 <= len(files) <= 2:
+        raise HTTPException(status_code=400, detail="Upload one or two bill photos.")
+
+    images: list[tuple[bytes, str]] = []
+    for file in files:
+        if file.content_type not in _ALLOWED_CONTENT_TYPES:
+            raise HTTPException(status_code=415, detail=f"Unsupported file type: {file.content_type}")
+        image_bytes = await file.read()
+        if len(image_bytes) > _MAX_FILE_SIZE_BYTES:
+            raise HTTPException(status_code=413, detail="Each file must be 10 MB or smaller.")
+        if not image_bytes:
+            raise HTTPException(status_code=400, detail="Uploaded file is empty.")
+        images.append((image_bytes, file.content_type))
+
+    try:
+        extract = gemini_service.extract_bill_from_images(images, api_key_override=x_gemini_key)
+    except RuntimeError as exc:
+        raise HTTPException(status_code=502, detail=str(exc))
+
+    return extraction_service.build_bill(extract)
+
+
 @router.post("/validate", response_model=Bill)
 async def validate_bill(data: dict) -> Bill:
     """
