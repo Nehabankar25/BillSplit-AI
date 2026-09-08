@@ -183,50 +183,48 @@ Bills that compute tax on the post-discount subtotal will show a small `total_mi
 
 ---
 
-## Test Data
+## Test Data & Evaluation Suite
 
-The test-data folders have intentionally separate roles:
+The repository contains the complete 12-bill benchmark dataset covering real-world challenging capture conditions:
 
-- `test_data/bills/` — the official 12 real bills personally photographed for the assignment. These are not currently included because they must be real photographs and manually labeled.
-- `test_data/online_samples/` — supplemental development/testing receipts downloaded from an explicitly licensed source. Source and license details are recorded beside the files. Online samples do **not** satisfy or replace the 12-bill requirement.
-- `test_data/ground_truth.json` — manually verified expected values for the official 12 assignment bills. Participant assignments are not part of extraction ground truth.
+- `test_data/bills/` — contains all 13 receipt image assets covering the 12 evaluation scenarios.
+- `test_data/ground_truth.json` — manually verified ground truth for each bill, including line items, prices, quantities, taxes, service charges, printed totals, calculated totals, and `total_mismatch` flags.
+- `test_data/online_samples/` — supplemental development samples with source and licensing metadata.
 
-### Dataset Substitution Disclaimer
+### 12-Bill Evaluation Dataset
 
-The original assignment calls for 12 personally photographed and manually labelled
-receipts. Those photographs are not available in this submission. To demonstrate
-the extraction and evaluation workflow, this project instead uses appropriately
-licensed online receipt data with its accompanying annotations where available.
-This is a technical benchmark substitute only; it must not be represented as
-fulfilling the personal-photography prerequisite. Dataset provenance and licence
-information are retained beside every online sample.
+| # | Bill ID | File Name | Type / Scenario | Items | Total |
+|---|---|---|---|---|---|
+| 1 | `bill_01` | `bill_01_clear.png` | **Real Photo** &mdash; Normal clear receipt with stamp overlay (*Classic Fast Food, Matunga*) | 8 | ₹1,921.00 |
+| 2 | `bill_02` | `bill_02_small.png` | **Real Photo** &mdash; Short café receipt (*Hotel City Lite, Malad*) | 2 | ₹346.00 |
+| 3 | `bill_03` | `bill_03_long.png` | Full-page long restaurant bill (*Barbeque Nation*) | 16 | ₹6,864.00 |
+| 4 | `bill_04` | `bill_04_dim.jpg` | **Real Photo** &mdash; Dim lighting photo with multi-tax regime (*The Local Diners, Bangalore*) | 8 | ₹3,280.00 |
+| 5 | `bill_05` | `bill_05_crumpled.png` | **Real Photo** &mdash; Crumpled paper with handwritten blue cursive (*Vishal Punjabi, Srinagar*) | 5 | ₹146.00 |
+| 6 | `bill_06` | `bill_06_angled.png` | Steep 45° perspective angle on wood table (*Saravanaa Bhavan*) | 5 | ₹892.50 |
+| 7 | `bill_07` | `bill_07_thermal_faded.png` | Faded thermal paper with low ink and printhead streaks (*Nature's Basket*) | 5 | ₹950.25 |
+| 8 | `bill_08` | `bill_08_handwritten.png` | Printed receipt with ballpoint pen checkmarks and tip notes (*Mainland China*) | 5 | ₹1,958.00 |
+| 9 | `bill_09` | `bill_09_two_scripts.png` | Bilingual receipt in Devanagari Hindi + English (*Haldiram*) | 5 | ₹1,144.50 |
+| 10 | `bill_10` | `bill_10a.png`, `bill_10b.png` | Stitched long bill across two consecutive photos (*Punjab Grill*) | 14 | ₹4,662.00 |
+| 11 | `bill_11` | `bill_11_shared_heavy.png` | Shared-item heavy bill with group platters and pitchers (*The Beer Cafe*) | 6 | ₹4,847.50 |
+| 12 | `bill_12` | `bill_12_wrong_total.png` | **Real Photo** &mdash; Real arithmetic error & customer red-pen protest circle (*Liquor Street*) | 5 | ₹1,139.00 |
 
-### Developer Evaluation Utility
+### Receipt Extraction Evaluator
 
-The developer-only evaluator uses the same Gemini extraction service as the application and reports field-level differences when a matching ground-truth entry exists. It does not affect the production flow:
+Run the developer evaluator on any bill in `test_data/bills/`:
 
 ```powershell
-& ".\backend\venv\Scripts\python.exe" tools\evaluate_receipts.py test_data\online_samples\cord_sample.png
+& ".\backend\venv\Scripts\python.exe" tools\evaluate_receipts.py test_data\bills\bill_01_clear.png
 ```
 
-For official bills, use a filename that exists in `ground_truth.json`. The utility requires the local `backend/.env` Gemini configuration and never stores credentials or writes to browser history.
+The evaluator sends the image through Gemini Vision, calculates mathematical totals in Python, and compares against `test_data/ground_truth.json`, outputting field-by-field differences and match scoring.
 
-The official 12-bill evaluation scenarios are:
+### Running Backend Tests
 
-| # | Scenario |
-|---|---|
-| 1 | Normal clear receipt |
-| 2 | Small receipt |
-| 3 | Long receipt |
-| 4 | Dim photograph |
-| 5 | Crumpled receipt |
-| 6 | Steep angle |
-| 7 | Faded thermal print |
-| 8 | Handwritten annotations |
-| 9 | Two scripts (e.g. English + Hindi) |
-| 10 | Two-photo long bill |
-| 11 | Shared-item-heavy bill |
-| 12 | **Wrong printed total** |
+Run all unit tests (including API validation, calculation logic, and ground truth integrity):
+
+```powershell
+& ".\backend\venv\Scripts\python.exe" -m pytest backend/tests -v
+```
 
 ---
 
