@@ -25,10 +25,10 @@ _IMAGE_TYPES = {".jpg": "image/jpeg", ".jpeg": "image/jpeg", ".png": "image/png"
 
 
 def _normal(value: Any) -> Any:
-    if isinstance(value, Decimal):
-        return str(value.quantize(Decimal("0.01")))
-    if isinstance(value, float):
-        return f"{value:.4f}"
+    if isinstance(value, bool):
+        return value
+    if isinstance(value, (Decimal, float, int)):
+        return str(Decimal(str(value)).quantize(Decimal("0.01")))
     return value
 
 
@@ -56,7 +56,8 @@ def _find_ground_truth(path: Path, ground_truth_path: Path | None) -> dict[str, 
     data = json.loads(ground_truth_path.read_text(encoding="utf-8"))
     filename = path.name
     for entry in data.get("bills", []):
-        if entry.get("filename") == filename:
+        entry_file = entry.get("filename")
+        if entry_file == filename or (isinstance(entry_file, list) and filename in entry_file):
             return entry.get("ground_truth") or None
     return None
 
@@ -83,6 +84,7 @@ def evaluate(image_path: Path, ground_truth_path: Path | None) -> dict[str, Any]
         "discount": bill.discount,
         "printed_total": bill.printed_total,
         "calculated_total": sum(item.total for item in bill.items) + bill.tax + bill.service_charge - bill.discount,
+        "total_mismatch": (abs((sum(item.total for item in bill.items) + bill.tax + bill.service_charge - bill.discount) - bill.printed_total) > Decimal("1.00")) if bill.printed_total is not None else False,
     }
     expected = _find_ground_truth(image_path, ground_truth_path)
     result: dict[str, Any] = {

@@ -29,13 +29,8 @@ env/
 .DS_Store
 Thumbs.db
 
-# Test data (large images)
-test_data/bills/*.jpg
-test_data/bills/*.jpeg
-test_data/bills/*.png
-test_data/bills/*.webp
-# Keep ground_truth.json
-!test_data/ground_truth.json
+# Test data
+# test_data/bills/ images and ground_truth.json are included
 
 # Screenshots
 screenshots/
